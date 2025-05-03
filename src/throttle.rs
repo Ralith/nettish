@@ -25,11 +25,11 @@ pub fn throttle(
     let scaled = if let Some(error) = min_latency.checked_sub(buffer_remaining) {
         // We're about to run out of data; slow down
         #[allow(clippy::manual_clamp)] // NaN handling in case `min_latency` is too close to zero
-        let scale = 1.0 - f32::min(1.0, f32::max(0.0, error.div_duration_f32(min_latency))).powi(3);
+        let scale = 1.0 - f32::min(1.0, f32::max(0.0, error.div_duration_f32(min_latency)));
         real_time.mul_f32(scale)
     } else if let Some(error) = buffer_remaining.checked_sub(min_latency + hysteresis) {
-        // We've fallen too far behind; speed up
-        let scale = error.as_secs_f32().powi(3);
+        // We've fallen too far behind; speed up. 1 second behind = 2x speed
+        let scale = error.as_secs_f32();
         // We know we're at least `error` behind where we should be, but not necessarily any
         // further. If we overshoot we'll underrun in the future.
         real_time + Ord::min(real_time.mul_f32(scale), error)
@@ -107,6 +107,7 @@ mod tests {
         let mut time_in_step = Duration::ZERO;
         for _ in 0..1_000 {
             let sim_time = throttle(FRAME_INTERVAL, buffer_remaining, MIN_LATENCY, STEP_INTERVAL);
+            dbg!(sim_time);
             // If we start ahead, we should never need to catch up
             assert!(sim_time <= FRAME_INTERVAL);
             // Guaranteed not to overrun
