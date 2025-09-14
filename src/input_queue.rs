@@ -30,16 +30,17 @@ impl<T> InputQueue<T> {
 
     /// Enqueue a new input
     ///
-    /// Called immediately on receipt
-    pub fn push(&mut self, max: usize, input: T, now: Instant) {
-        if self.queue.len() == max {
-            // Overrun
+    /// Called immediately on receipt. Returns whether an old input was dropped due to overrun.
+    pub fn push(&mut self, max: usize, input: T, now: Instant) -> bool {
+        let overrun = self.queue.len() == max;
+        if overrun {
             self.queue.pop_front();
         }
         self.queue.push_back(input);
         if self.epoch.is_none() {
             self.epoch = Some(now);
         }
+        overrun
     }
 
     /// Obtain the input for the next simulation step
